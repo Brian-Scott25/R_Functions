@@ -10,5 +10,11 @@ This repository includes functions I have made in the R coding language. The mai
 
 ## Log_Lag Function
 ### RPubs Link: https://rpubs.com/BrianScott/948426
+#### Purpose
 This function quickly logs and lags a dataset, knowing to only log columns with all positive values, in order to avoid NA's. 
 The primary use of this function is for the variable selection in regression models. This allows someone to quickly navigate through logged, raw and lagged model versions.  
+
+## Corr_Reduce Funtion
+### RPubs Link: https://rpubs.com/BrianScott/948474
+#### Purpose
+This function helps to reduce the amount of potential variables for a regression model. The model produces a Full Datset Correlogram, a bar chart of significant variables, and a reduced correlogram of only the significant variables
