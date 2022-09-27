@@ -1,0 +1,135 @@
+---
+title: "Log_Lag Function"
+author: Brian Scott
+output: github_document
+---
+
+## R Script Description
+
+The LOG_LAG function will log and lag an entire data set. The function will only log variables that have a minimum value greater than 0. This way there are no NA's produced by trying to log negative numbers. The result of this function is a data frame that includes the raw variable, the logged variable (if applicable), and lagged variables for both the raw and the logged data.
+
+### Reason for function creation
+
+Logging and Lagging Data is easy to simply hard code, but when you are unsure what variables will actually go into the final model hard coding the logs and lags can be very time consuming. Especially, when the potential variables are extensive. Additionally, it is easier to call variables from a single database, and the hard coded variables would have to be manually inserted back into that database to do this. This function also does not change the original database, it only adds new databases.
+
+In my experience logged models typically have much higher adjusted R squares than non-logged models. I found myself trying different variations of logged and non logged models quite often. This function makes it easy to quickly switch variables to the desired form.
+
+## Importing the data and renaming the file as DF
+
+This data is masked, each variable was renamed as var1,var2, etc.
+
+```{r Data Import}
+library(readxl)
+MaskedData <- read_excel("F:/Summer2022/MaskedData.xlsx", 
+    col_types = c("date", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric"))
+DF <- MaskedData
+```
+
+## Log Lag Function
+
+### Inputs:
+
+The function has two inputs.
+
+1.  df: the data frame that needs logged and lagged
+2.  lagAMT: the level of lags a user needs. This has to be a discrete number.
+
+### Outputs:
+
+The function saves three data frames to the global environment. The FullLagLog dataframe can become very large. I included other data frames as output so that analysis can be done faster using the smaller data frames, if lagged variables are unneeded.
+
+1.  LogDF: A data frame that contains only the variables that could be logged
+2.  LogRawDF: A combination of both the logged and raw data, this includes any variables that couldn't be logged
+3.  FullLagLogDF: The full data set of raw, logged, and lagged variables
+
+```{r LOG_LAG,message=FALSE, warning=FALSE}
+LOG_LAG <- function(df,lagAMT) {
+  require(zoo)
+  require(dplyr)
+  require(tidyverse)
+  
+  #Create Logged DF, by logging only positive numeric collumns
+  D <- df
+  
+  #omitting NA's in order to use min function, otherwise Min will return NA for any collumn that has NA's
+  newD <- na.omit(D)
+  
+  #selecting only numeric collumns that are fully positive
+  newDF <- newD %>% 
+    summarise_if(is.numeric, min)
+  
+  relCols <- newDF %>%
+    select_if(newDF > 0)
+  
+  #Using the positive numeric collumns to create a DB of each of those collumns, NA's back in DB
+  relColNames <- colnames(relCols)
+  nDF <- D[,relColNames]
+  
+  #R returns NA's for logged values of NA's, so no error occurs by logging the whole DB
+  logNDF <- log(nDF)
+  names(logNDF) <- paste(names(relCols), "_log")
+  
+  #Removes the space between "variable name" and "_log"
+  names(logNDF) <- gsub(" ", "",names(logNDF))
+  
+  #Save LogDF to global environment
+  LogDF <<- as.data.frame(logNDF)
+  
+  #Combine Log dataframe with the original database
+  dfLogRaw <- cbind(D,logNDF)
+  LogRawDF <<- dfLogRaw
+  
+  #Create lagged Variables
+  #Variables lagged lagAMT units. Notation: "variableName_log_lag"
+  FullLagLogDF <<- mutate_all(dfLogRaw, funs("Lag" = lag(.,lagAMT)))
+}
+LOG_LAG(DF,1)
+```
+
+## Example Output
+
+### FullLagLogDF
+
+The data frame that this function creates is typically lengthy. I selected only one of the variables to show that the function did create the three additional variables.
+
+```{r Example Output FullLagLogDf}
+head(FullLagLogDF %>% select(var1, var1_log, var1_Lag, var1_log_Lag))
+
+```
+
+### LogRawDF
+
+To show that the two other databases were also made I called variables from each. This is the data frame that includes logged and raw data but no lags
+
+```{r Example Output LogRawDF}
+head(LogRawDF %>% select(var1, var1_log))
+```
+
+### LogDF
+
+This data frame only includes variables that were able to be logged
+
+```{r Example Output LogDF}
+head(LogDF %>% select(var1_log,var33_log))
+```
+
+## Function Issues
+
+This function is a work in progress, I intend to make updates to fix a few small issues.
+
+1.  The function currently logs categorical variables, if they are numeric categories. This takes additional processing power to make a variable of no use.
+
+2.  The function currently creates a lagged variable for the date, which again takes processing power for a useless variable.
+
+3.  I intend to add in if-statement tests for the function inputs, so the function does not crash if an input value is used incorrectly. For example, specifying lagAMT to 1.5 will cause an error. I want to provide output stating "The lagAMT must be a discrete number"
