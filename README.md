@@ -9,7 +9,7 @@ MS in Applied Economics and Data Intelligence, University of Nevada: Las Vegas
      
 ## Project Purpose
 
-This repository includes functions I have made in the R coding language. The main goal of these functions is to increase the speed of statistical analysis. The code is presented in the form of R markdown files, and the link to each specific function in RPubs is posted for each function. 
+This repository includes functions I have made in the R coding language. The main goal of these functions is to increase the speed of statistical analysis. The code is presented in the form of R markdown files, and the link to each specific function in RPubs is posted for each function. For a better visual expirience, use the RPub links. 
 
 #### RPubs Full Cite Link: https://rpubs.com/BrianScott
 
