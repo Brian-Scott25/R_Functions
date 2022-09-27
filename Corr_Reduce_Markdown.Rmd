@@ -1,0 +1,135 @@
+---
+title: "Corr_Reduce"
+author: Brian Scott
+output: github_document
+---
+
+## R Script Description
+
+The function produces a full correlogram of the entire data set, a bar chart showing variables that are significantly correlated with the variable of interest, and a reduced correlogram that only includes the variables from the bar chart.
+
+### Reason for function creation
+
+The CORR_REDUCE function helps the user to understand how the variables in a data set are related to each other. This is useful for determining potential variables to include in a regression model. We want to find variables that are highly correlated with our variable of interest (the dependent variable for the model). To avoid multicolinearity, the variables highly correlated with the dependent variable need to have low correlation to each other, if they are to be included in the model.
+
+This function helps the user narrow in on the best potential variable combinations for the model. The bar chart shows all the variables correlated higher than the specified correlation level from the function. Then these variables are placed into a reduced correlogram so the user can see the correlations between the potential variables. 
+
+## Importing the data and renaming the file as DF
+
+This data is masked, each variable was renamed as var1,var2, etc.
+
+```{r Data Import}
+library(readxl)
+MaskedData <- read_excel("F:/Summer2022/MaskedData.xlsx", 
+    col_types = c("date", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric"))
+DF <- MaskedData
+```
+
+## Corr Reduce Function
+
+### Inputs:
+
+The function has three inputs.
+
+1.  df: the data frame 
+2.  corrLev: The level of correlation that is determined to make a variable a good potential independent variable
+3.  yVar: The variable of interest and the intended dependent variable for the model
+
+### Outputs:
+
+The Function produces three plots.
+
+1.  Full Correlogram: Correlogram of any numeric variable in the data frame
+2.  Bar Chart: This chart shows variables correlated higher than the specified correlation to the variable of interest
+3.  Reduced Correlogram: A correlogram with only the variables from the barchart
+
+```{r CORR_REDUCE, fig.height=8, fig.width=8, message=FALSE, warning=FALSE, paged.print=TRUE}
+CORR_REDUCE <- function(df,corrLev, yVar) { 
+  require(psych)
+  require(dplyr)
+  
+  newDF <- na.omit(df)
+  newDF <- newDF %>%
+    select(where(is.numeric))
+  
+  #Full Dataset Correlogram
+  colSize <- ncol(newDF)
+  fullCorrPlot <- corPlot(newDF[,1:colSize], scale = FALSE, main = "Full Dataset Correlogram")
+  
+  #Bar Chart 
+  corrD <- cor(newDF, use = "all.obs")
+  
+  
+  names(corrD) <- gsub(x = names(corrD),
+                       pattern = "(\\.)+",
+                       replacement = " ")
+  corrD <- data.frame(corrD)
+  
+  y <- match(yVar,names(corrD))
+  
+  negCorrLev <- -1 * corrLev
+  
+  corrY <- corrD %>% 
+    select(all_of(y)) %>%
+    filter(corrD[y] >= corrLev | corrD[y] < negCorrLev)
+  
+  corrYt <- t(corrY)
+  
+  #Title String
+  tM1 <- "Vars Correlated  Than: "
+  tM2 <- as.character(corrLev)
+  tM3 <- "(abs value) with: "
+  tM4 <- as.character(yVar)
+  
+  titleB <- paste(tM1,tM2,tM3,tM4)
+  barplot(corrYt, main = titleB , xlab = "Variables", ylab = "Correlation AMT", col = "blue")
+  
+  #Refined Correlogram, with only variables highly correlated with yVar
+  releventVars <- colnames(corrYt)
+  xCorrDF <- newDF[,releventVars]
+  subColSize <- ncol(xCorrDF)
+  
+  s1 <- "Correlations Between Vars Highly Correlated with: "
+  s2 <- as.character(yVar)
+  titleS <- paste(s1,s2)
+  subCorrPlot <- corPlot(xCorrDF[,1:subColSize], scale = FALSE, main = titleS)
+}
+CORR_REDUCE(DF,.5,"var1")
+```
+
+## Output Use
+
+1. The full data set correlogram is significantly reduced by the final step, which makes reading the correlogram much    easier. 
+
+2. The bar chart tells us there are 11 variables correlated over .5 with var1. The original data set has 34 variables,    which means just by running this function we can eliminate 23 of our data set variables.
+
+3. In the reduced correlogram we are looking for variable combinations that have low correlation to each other.
+
+3a. Some examples would be: var17 and var25, they have a correlation of .28 and are each correlated with var1 greater      than .6. 
+
+3b. Var20 and Var17 might be a better combination. They have a correlation of .52 which is somewhat high, but var20       has a correlation to var 1 of .87
+
+3c. I would probably start with a model containing var17 and var20, even though there is a higher chance of               multicolinearity. My reasoning is var20's correlation to var1 is much higher and I can use VIF factors to             determine if there actually is an issue. 
+    
+## Notes
+
+1. This method is only a starting point, it is not conclusive proof that metrics should or shouldn't be in the model.
+
+2. Some of the metrics that were removed may have had correlations after a data transformation, such as logging the      variable
+
+3. If the data set you are using the function on is very large, then the correlation plot will require you to change     the output margins to see it. 
+
+4. The function assumes that the database was compiled with economic reasoning. For example, if my dependent variable    is a stocks closing price then the data set should only include variables that you have determined could effect       closing prices. This alleviates any concerns of variables showing high correlation to the closing price by            accident.
+
+4a. For example, if we found a high correlation between closing price and the number of dogs in Europe, we would          still not include that variable in the model. There is no economic reasoning that could back up that metric. 
