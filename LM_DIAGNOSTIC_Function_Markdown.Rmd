@@ -1,0 +1,205 @@
+---
+title: "LM_DIAGNOSTIC R Function"
+author: Brian Scott
+output: github_document
+---
+
+## R Script Description
+
+This function allows a user to quickly run diagnostics on a regression model in order to determine if linear regression is appropriate.
+
+### Reason for function creation
+
+The summary output that you get from r's summary() function does not have enough information to fully diagnose the model. This Function includes plots to determine homoscedacity, autocorrelation tests, and a multicolinearity test. Additionally, the output gets saved as a data frame, so it can easily be exported to other programs.
+
+## Importing the data and renaming the file as DF
+
+This data is masked, each variable was renamed as var1,var2, etc.
+
+```{r Data Import}
+library(readxl)
+MaskedData <- read_excel("F:/Summer2022/MaskedData.xlsx", 
+    col_types = c("date", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric"))
+DF <- MaskedData
+```
+
+## LM_DIAGNOSTIC Function
+
+### Inputs:
+
+The function has three inputs.
+
+1.  df: the data frame that needs logged and lagged
+2.  yVar: the dependent variable for the regression model
+3.  xVars: A list of independent variables for the model
+
+### Outputs:
+
+This function produces 7 outputs.
+
+1.  Variable Summary Table: including VIF values for multicolinearity testing
+2.  Model Summary Table: including Durbin Watson Stat for autocorrelation testing
+3.  Residuals Histogram: to check for normally ditributed errors
+4.  Fitted vs Residual Plot: to test for heteroscedacity
+5.  Normal Q-Q Plot: to test for normal distribution in errors (similar to the histogram)
+6.  Scale-Location Plot: Additional testing for heteroscedacity
+7.  Residuals Vs Leverage Plot: To help determine if there are any outliers
+
+```{r LM_DIAGNOSTIC FUNCTION, message=FALSE}
+LM_DIAGNOSTIC <- function(df, yVar, xVars){
+  
+  require(car)
+  require(gridExtra)
+  
+  #Create Y variable for regression model
+  depV <- paste(yVar, "~")
+  
+  #create X variable string for regression model
+  indepV <- paste(xVars, collapse = " + ")
+  
+  #Combine to form the full model
+  formula <- paste(depV, indepV)
+  
+  #Run regression model
+  regM <- lm(formula, data = df)
+  
+  #Collect P Values and coefficients and make a dataframe
+  pcValues <- data.frame(summary(regM)$coefficients[,1],summary(regM)$coefficients[,4])
+  names(pcValues)[1] <- "Estimate"
+  names(pcValues)[2] <- "P Value"
+  pcValues$VarSig <- ifelse(pcValues$`P Value` < .05, "True", "False")
+  
+  #Multicollinearity Test, VIF Values as a dataframe
+  vifDF <- data.frame(car::vif(regM))
+  names(vifDF)[1] <- "VIF"
+  vifDF$NoMulticollinearity <- ifelse(vifDF$VIF < 5, "True", "False")
+  
+  #Summary Table for Variables
+  variableSummary <- merge(pcValues,vifDF, by = 'row.names', all = TRUE)
+  names(variableSummary)[1] <- "Model Variables"
+  variableSummary <<- variableSummary
+  variableSummary <- t(variableSummary)
+  
+  #Adjusted R Square as dataframe
+  adjR <- data.frame(summary(regM)$adj.r.squared)
+  names(adjR)[1] <- "AdjRSquare"
+  row.names(adjR)[1] <- "Model Fit"
+  
+  #creates a new column that states the strength of the RSquare
+  adjR$ModelFit <- ifelse(adjR$`AdjRSquare` > .9, "Strong", 
+                                  ifelse(adjR$`AdjRSquare` > .75, "Moderate",
+                                         ifelse(adjR$`AdjRSquare` > .5, "Weak", "Insignificant" )))
+ 
+  
+  #Autocorrelation Test, Durbin Watson as dataframe
+  dw <- car::durbinWatsonTest(regM)
+  dwStat <- data.frame(dw$dw)
+  names(dwStat)[1] <- "DWStat"
+  row.names(dwStat)[1] <- "Autocorrelation Info"
+  
+  #creates a column that states if the durbin watson test indicates if there is autocorrelation 
+  dwStat$Autocorr <- ifelse(dwStat$`DWStat` < 1.7 || dwStat$`DWStat` > 2.3, "True", "False")
+ 
+  
+  #Extract FStats and make dataframe
+  fstat <- summary(regM)$fstatistic[1]
+  predictVars <- summary(regM)$fstatistic[2]
+  degreesFreedom <- summary(regM)$fstatistic[3]
+  modelPValue <- pf(fstat,predictVars,degreesFreedom, lower.tail=F)
+ 
+  fStatTable <- data.frame(fstat,predictVars,degreesFreedom,modelPValue)
+  names(fStatTable)[1] <- "FStat"
+  names(fStatTable)[2] <- "NumXVars"
+  names(fStatTable)[3] <- "DF"
+  names(fStatTable)[4] <- "FStat-PVal"
+  
+  #Extract Residual Standard Error as dataframe
+  rse <- data.frame(summary(regM)$sigma)
+  names(rse)[1] <- "RSE"
+  
+  #Table for general model diagnostics
+  modelSummary <- merge(dwStat,adjR)
+  modelSummary <- merge(modelSummary,fStatTable)
+  modelSummary <- merge(modelSummary,rse)
+  row.names(modelSummary)[1] <- "Model Summary"
+  modelSummary <<- modelSummary
+  
+  modelSummary <- t(modelSummary)
+  
+  vs <- gridExtra::tableGrob(variableSummary)
+  ms <- gridExtra::tableGrob(modelSummary)
+  
+  gridExtra::grid.arrange(vs,ms)
+  
+  #Residuals Histogram, Check for approximately normal distribution in errors
+  hist(residuals(regM), col ="steelblue")
+  
+  #Fitted vs Residual Plot, Normal QQ plot, Scale-Location Plot, Residuals vs Leverage Plot
+  par(mfrow=c(2,2))
+  plot(regM)
+}
+LM_DIAGNOSTIC(DF,"var1", c("var2","var3","var4"))
+```
+
+## Output Explanation
+
+### Variable Summary
+
+1.  PValues: Only var2 has a pvalue above .05, which means it is the only insignificant one in the model
+2.  VIF Scores: All VIF scores are below 5, so mutlicoliniarity is not a concern.
+
+### Model Summary
+
+1.  Adjusted R Square: .975, this is very strong. It means 97.5% of the variation in var1 can be explained by the model
+2.  Durbin Watson: The DW was well below 2, which indicates a high level of negative autocorrelation
+
+### Residuals Histogram
+
+1.  The histogram indicates the residuals are normally distributed, which is needed for linear regression
+
+### Fitted vs Residuals Plot
+
+1.  The variance in the residuals should be constant throughout the plot for the model to be homoscedastic.
+2.  The variance range is much larger at the end of the plot, indicating non-constant variance.
+3.  A possible fix to this issue is to difference your variables. var1 - var1_lag
+
+### Normal Q-Q Plot
+
+1.  This is another way to check if the residuals are normally distributed.
+2.  If the residuals fall closely along the dotted grey line then they are normally distributed.
+3.  I added this plot as well as the histogram because this plot shows observations that might not fit the distribution
+4.  The observations that are farther from the dotted line can be tested for outliers
+
+### Scale Location Plot
+
+1.  This plot is also used to check for heteroscedacity. We would like to see no pattern in the residuals.
+2.  The plot again indicates the model is not homoscedastic
+
+### Residuals VS Leverage Plot
+
+1.  This plot can be used to find potential outliers.
+2.  Observations that are outside of the cook's line are potential outliers.
+3.  Additionally, this plot shows how much leverage an observation has on the model
+4.  An observation farther to the right on this plot indicates higher leverage.
+5.  This means if that observation was removed it would have a greater impact on the models coefficients
+6.  There are no obvious points outside the cooks line, but there are a few that are very close.
+7.  These observations should be tested for outliers
+
+### Conclusion
+
+1.  The model needs to do some data manipulation to handle the heteroskedacity, such as using a GLM model
+2.  The model has high autocorrelation, which might be fixed by using lagged variables
+3.  Only one of the variables was insignificant, and it should be removed from the model
+4.  The strongest metric of this model is the adjusted r square being so high
+5.  In its current form the model does not work for Linear regression
