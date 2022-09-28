@@ -27,3 +27,10 @@ The primary use of this function is for the variable selection in regression mod
 #### RPubs Corr_Reduce Link: https://rpubs.com/BrianScott/948474
 #### Purpose
 This function helps to reduce the amount of potential variables for a regression model. The model produces a Full Datset Correlogram, a bar chart of significant variables, and a reduced correlogram of only the significant variables
+
+
+
+## LM_DIAGNOSTIC Function
+#### RPubs LM_Diagnostic lnk: https://rpubs.com/BrianScott/948499
+#### Purpose
+This Function does several tests at once to determine if a linear model s approprate for the regression equation. In addition to the standard output such as the r Square and pvalues, the function also uses plots and tests to determine heteroskedacity, autocorrelation, and multicoliniarity. 
