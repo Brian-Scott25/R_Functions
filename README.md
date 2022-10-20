@@ -9,13 +9,15 @@ MS in Applied Economics and Data Intelligence, University of Nevada: Las Vegas
      
 ## Project Purpose
 
-This repository includes functions I have made in the R coding language. The main goal of these functions is to increase the speed of statistical analysis. The code is presented in the form of R markdown files, and the link to each specific function in RPubs is posted for each function. For a better visual expirience, use the RPub links. 
+This repository includes functions I have made in the R coding language. The main goal of these functions is to increase the speed of statistical analysis. The code is presented in the form of R markdown files, and the link to each specific function in RPubs is posted for each function. For the optimal visual expirience use the RPubs links.
 
-### Side Notes
+#### Side Notes
 
-This repository consists of functions I desgined early in my R coding expirience. These functions work regardless the database complexity, however there are more efficient ways to return the same results. For example, the LOG_LAG function I created would take considerable time on 
+This repository consists of functions I desgined early in my R coding expirience. These functions work regardless of the database complexity, however there are more efficient ways to return the same results. For example, the LOG_LAG function could have been created with less code. 
 
+## RPubs Link
 
+The link below directs you to my full RPubs page. The function layout is optimized for RPubs format, which may look out of place on Github. The specific link to each function in RPubs is posted under each function.
 #### RPubs Full Cite Link: https://rpubs.com/BrianScott
 
 
