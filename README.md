@@ -13,7 +13,7 @@ This repository includes functions I have made in the R coding language. The mai
 
 #### Side Notes
 
-This repository consists of functions I desgined early in my R coding expirience. These functions work regardless of the database complexity, however there are more efficient ways to return the same results. For example, the LOG_LAG function could have been created with less code. 
+This repository consists of functions I designed early in my R coding expirience. These functions work regardless of the database complexity, however there are more efficient ways to return the same results. For example, the LOG_LAG function could have been created with less code. Additonally, variable standardiziation is not used in these functons, which is something I intend to implement in an additional update. 
 
 ## RPubs Link
 
@@ -45,4 +45,4 @@ This Function does several tests at once to determine if a linear model s approp
 #### Side Note
 This function does test well for outliers, I am still researching the best approach to test for outliers. 
 This function does not do hold out test sampling, I wil provide another function for that.
-Hold out sampling should only be done on models that fit all the requirements for linear regression, so the LM_DIAGNOSTIC Function is used to determine if hold out testing is necessary 
+Hold out sampling should only be done on models that fit all the requirements for linear regression, so the LM_DIAGNOSTIC Function is used to determine if hold out testing is necessary. 
